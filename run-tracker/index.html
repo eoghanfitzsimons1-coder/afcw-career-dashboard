@@ -1024,7 +1024,7 @@ async function saveRuns(runs) {
 
             if (showDelete) {
                 el.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', function() {
+                    btn.addEventListener('click', async function() {
                         const date = this.dataset.date;
                         const dist = parseFloat(this.dataset.dist);
                         const pace = parseFloat(this.dataset.pace);
@@ -1587,7 +1587,7 @@ async function saveRuns(runs) {
         }
 
         // ── Add Run ──
-        document.getElementById('addRunForm').addEventListener('submit', function(e) {
+        document.getElementById('addRunForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             const date = document.getElementById('inputDate').value;
             const dist = parseFloat(document.getElementById('inputDist').value);
@@ -1599,9 +1599,9 @@ async function saveRuns(runs) {
                 return;
             }
 
-            const runs = loadRuns();
+            const runs = await loadRuns();
             runs.push({ date, dist, pace, energy, pace5k: pace * 5 });
-            saveRuns(runs);
+            await saveRuns(runs);
             refreshDashboard();
 
             document.getElementById('inputDist').value = '';
@@ -1610,21 +1610,21 @@ async function saveRuns(runs) {
         });
 
         // ── Goal change ──
-        document.getElementById('paceGoal').addEventListener('change', function() {
-            const runs = loadRuns();
-            const groups = groupRuns(runs);
-            renderTrendsCharts(groups.trends);
-        });
+        document.getElementById('paceGoal').addEventListener('change', async function() {
+           const runs = await loadRuns();
+           const groups = groupRuns(runs);
+           renderTrendsCharts(groups.trends);
+       });
 
-        document.getElementById('paceGoal').addEventListener('input', function() {
-            const runs = loadRuns();
-            const groups = groupRuns(runs);
-            renderTrendsCharts(groups.trends);
-        });
+        document.getElementById('paceGoal').addEventListener('input', async function() {
+        const runs = await loadRuns();
+        const groups = groupRuns(runs);
+        renderTrendsCharts(groups.trends);
+       });
 
         // ── Export JSON ──
-        document.getElementById('btnExport').addEventListener('click', function() {
-            const runs = loadRuns();
+        document.getElementById('btnExport').addEventListener('click', async function() {
+        const runs = await loadRuns();
             if (!runs.length) {
                 alert('No runs to export!');
                 return;
@@ -1774,9 +1774,9 @@ async function saveRuns(runs) {
         });
 
         // ── Clear All ──
-        document.getElementById('btnClearAll').addEventListener('click', function() {
-            const runs = loadRuns();
-            if (!runs.length) {
+        document.getElementById('btnClearAll').addEventListener('click', async function() {
+         const runs = await loadRuns();
+         if (!runs.length) {
                 alert('No data to clear.');
                 return;
             }
@@ -2041,12 +2041,12 @@ async function saveRuns(runs) {
             let resizeTimer;
             window.addEventListener('resize', function() {
                 clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(() => {
-                    const activeTab = document.querySelector('.tab-btn.active');
-                    if (activeTab) {
-                        const tab = activeTab.dataset.tab;
-                        const runs = loadRuns();
-                        const groups = groupRuns(runs);
+                resizeTimer = setTimeout(async () => {
+    const activeTab = document.querySelector('.tab-btn.active');
+    if (activeTab) {
+        const tab = activeTab.dataset.tab;
+        const runs = await loadRuns();
+        const groups = groupRuns(runs);
                         if (tab === 'overview') {
                             renderCalPerKmChart(groups.overview);
                         } else if (tab === 'trends') {
