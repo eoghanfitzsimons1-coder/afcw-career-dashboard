@@ -12,9 +12,6 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js">
     </script>
     <style>
-        /* ── your full CSS here ── */
-        /* (Copy the exact CSS from the previous version) */
-        /* For brevity, I'll include the complete CSS inline */
         * {
             margin: 0;
             padding: 0;
@@ -506,7 +503,6 @@
                 padding: 6px 8px;
             }
         }
-        /* ── Heatmap ── */
         .heatmap-scroll {
             overflow-x: auto;
             padding-bottom: 6px;
@@ -617,7 +613,6 @@
 
     <div class="dashboard">
 
-        <!-- HEADER -->
         <header class="header">
             <div class="header-left">
                 <span class="icon">🏃</span>
@@ -635,7 +630,6 @@
             </div>
         </header>
 
-        <!-- ADD RUN FORM -->
         <form class="add-form" id="addRunForm">
             <div class="field">
                 <label>📅 Date</label>
@@ -662,7 +656,6 @@
             <button type="button" class="btn danger" id="btnClearAll">🗑️ Clear All</button>
         </form>
 
-        <!-- GOAL CONTROL -->
         <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:24px; align-items:center;">
             <div class="goal-control">
                 <label>🎯 Pace Goal</label>
@@ -674,7 +667,6 @@
             </div>
         </div>
 
-        <!-- TABS -->
         <div class="tabs" id="tabNav">
             <button class="tab-btn active" data-tab="overview">📊 Overview <span class="badge">0</span></button>
             <button class="tab-btn" data-tab="trends">📈 Trends <span class="badge">0</span></button>
@@ -687,10 +679,8 @@
             <button class="tab-btn" data-tab="sep">Sep <span class="badge">0</span></button>
         </div>
 
-        <!-- PANELS -->
         <div id="tabPanels">
 
-            <!-- OVERVIEW -->
             <div class="tab-panel active" id="panel-overview">
                 <div class="summary-grid" id="summary-overview"></div>
                 <div class="chart-wrap">
@@ -705,7 +695,6 @@
                 </div>
             </div>
 
-            <!-- TRENDS -->
             <div class="tab-panel" id="panel-trends">
                 <div class="chart-wrap">
                     <div class="chart-title">📏 Distance Over Time</div>
@@ -718,7 +707,7 @@
                     <div class="chart-note">Dashed line = 3-run rolling average · <span style="color:#f5b06b;">══</span> Goal line</div>
                 </div>
             </div>
-            <!-- HEATMAP -->
+
             <div class="tab-panel" id="panel-heatmap">
                 <div class="summary-grid" id="summary-heatmap"></div>
                 <div class="chart-wrap">
@@ -730,7 +719,6 @@
                 </div>
             </div>
 
-            <!-- MONTHLY PANELS -->
             <div class="tab-panel" id="panel-jan">
                 <div class="summary-grid" id="summary-jan"></div>
                 <div class="chart-wrap">
@@ -817,12 +805,12 @@
     </div>
 
     <script>
-        // ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 //  NETLIFY BLOBS DATA LAYER
 // ═══════════════════════════════════════════════════════
 
 const API_URL = "/api/runs";
-const LOCAL_STORAGE_KEY = "runTrackerData"; // Keep as offline cache
+const LOCAL_STORAGE_KEY = "runTrackerData";
 
 async function fetchRunsFromCloud() {
   try {
@@ -878,1159 +866,1138 @@ async function loadRuns() {
 }
 
 async function saveRuns(runs) {
-  await saveRunsToCloud(runs);
+  return await saveRunsToCloud(runs);
 }
 
-        // ── helpers ──
-        function getMonthKey(dateStr) {
-            return new Date(dateStr).getMonth();
-        }
+// ── helpers ──
+function getMonthKey(dateStr) {
+    return new Date(dateStr).getMonth();
+}
 
-        function groupRuns(runs) {
-            const groups = { overview: runs, trends: runs, jan: [], febmay: [], jun: [], jul: [], aug: [], sep: [] };
-            runs.forEach(r => {
-                const m = getMonthKey(r.date);
-                if (m === 0) groups.jan.push(r);
-                else if (m === 1 || m === 3 || m === 4) groups.febmay.push(r);
-                else if (m === 5) groups.jun.push(r);
-                else if (m === 6) groups.jul.push(r);
-                else if (m === 7) groups.aug.push(r);
-                else if (m === 8) groups.sep.push(r);
-            });
-            Object.keys(groups).forEach(k => {
-                if (k !== 'overview' && k !== 'trends') {
-                    groups[k].sort((a, b) => new Date(a.date) - new Date(b.date));
+function groupRuns(runs) {
+    const groups = { overview: runs, trends: runs, jan: [], febmay: [], jun: [], jul: [], aug: [], sep: [] };
+    runs.forEach(r => {
+        const m = getMonthKey(r.date);
+        if (m === 0) groups.jan.push(r);
+        else if (m === 1 || m === 3 || m === 4) groups.febmay.push(r);
+        else if (m === 5) groups.jun.push(r);
+        else if (m === 6) groups.jul.push(r);
+        else if (m === 7) groups.aug.push(r);
+        else if (m === 8) groups.sep.push(r);
+    });
+    Object.keys(groups).forEach(k => {
+        if (k !== 'overview' && k !== 'trends') {
+            groups[k].sort((a, b) => new Date(a.date) - new Date(b.date));
+        }
+    });
+    groups.overview.sort((a, b) => new Date(a.date) - new Date(b.date));
+    groups.trends.sort((a, b) => new Date(a.date) - new Date(b.date));
+    return groups;
+}
+
+function calcStats(runs) {
+    if (!runs.length) return { count: 0, totalDist: 0, avgPace: 0, totalEnergy: 0, avg5k: 0 };
+    const n = runs.length;
+    const totalDist = runs.reduce((s, r) => s + r.dist, 0);
+    const totalEnergy = runs.reduce((s, r) => s + r.energy, 0);
+    const avgPace = runs.reduce((s, r) => s + r.pace, 0) / n;
+    const avg5k = runs.reduce((s, r) => s + (r.pace5k || r.pace * 5), 0) / n;
+    return { count: n, totalDist, avgPace, totalEnergy, avg5k };
+}
+
+function rollingAverage(data, windowSize = 3) {
+    const result = [];
+    for (let i = 0; i < data.length; i++) {
+        const start = Math.max(0, i - Math.floor(windowSize / 2));
+        const end = Math.min(data.length, i + Math.ceil(windowSize / 2));
+        const slice = data.slice(start, end);
+        const avg = slice.reduce((s, v) => s + v, 0) / slice.length;
+        result.push(avg);
+    }
+    return result;
+}
+
+function excelSerialToDate(serial) {
+    const epoch = new Date(1899, 11, 30);
+    const date = new Date(epoch.getTime() + serial * 86400000);
+    return date.toISOString().split('T')[0];
+}
+
+function isExcelDate(value) {
+    if (typeof value !== 'number') return false;
+    if (value < 10000 || value > 100000) return false;
+    return Number.isInteger(value);
+}
+
+function formatDateLabel(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return dateStr;
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    return months[d.getMonth()] + ' ' + d.getDate();
+}
+
+// ── render functions ──
+function updateOverall(runs) {
+    const all = runs || [];
+    const n = all.length;
+    if (!n) {
+        document.getElementById('statTotalDist').textContent = '0';
+        document.getElementById('statAvgPace').textContent = '—';
+        document.getElementById('statTotalEnergy').textContent = '0';
+        document.getElementById('statTotalRuns').textContent = '0';
+        document.getElementById('dataStatus').textContent = 'no runs yet — add one above!';
+        return;
+    }
+    const totalDist = all.reduce((s, r) => s + r.dist, 0);
+    const totalEnergy = all.reduce((s, r) => s + r.energy, 0);
+    const avgPace = all.reduce((s, r) => s + r.pace, 0) / n;
+    document.getElementById('statTotalDist').textContent = totalDist.toFixed(1);
+    document.getElementById('statAvgPace').textContent = avgPace.toFixed(2);
+    document.getElementById('statTotalEnergy').textContent = Math.round(totalEnergy);
+    document.getElementById('statTotalRuns').textContent = n;
+    document.getElementById('dataStatus').textContent = `${n} runs ✅`;
+}
+
+function renderSummary(containerId, stats) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    if (!stats.count) {
+        el.innerHTML = `<div class="empty-state"><div class="big">📭</div>No runs</div>`;
+        return;
+    }
+    el.innerHTML = `
+        <div class="summary-card"><div class="num blue">${stats.count}</div><div class="lbl">Runs</div></div>
+        <div class="summary-card"><div class="num green">${stats.totalDist.toFixed(1)}</div><div class="lbl">Total km</div></div>
+        <div class="summary-card"><div class="num orange">${stats.avgPace.toFixed(2)}</div><div class="lbl">Avg Pace</div></div>
+        <div class="summary-card"><div class="num pink">${Math.round(stats.totalEnergy)}</div><div class="lbl">Total cal</div></div>
+        <div class="summary-card"><div class="num purple">${stats.avg5k.toFixed(2)}</div><div class="lbl">Avg 5k Pace</div></div>
+    `;
+}
+
+function renderTable(tableId, runs, showDelete = true) {
+    const el = document.getElementById(tableId);
+    if (!el) return;
+    if (!runs.length) {
+        el.innerHTML = `<tr><td colspan="${showDelete ? 6 : 5}" style="text-align:center;padding:24px;color:#5a6a82;">No runs</td></tr>`;
+        return;
+    }
+    let html = `
+        <thead><tr>
+            <th>Date</th>
+            <th style="text-align:right;">Distance</th>
+            <th style="text-align:right;">Pace</th>
+            <th style="text-align:right;">Energy</th>
+            <th style="text-align:right;">5k Pace</th>
+            ${showDelete ? '<th style="text-align:center;">🗑️</th>' : ''}
+        </tr></thead><tbody>
+    `;
+    runs.forEach((r) => {
+        const paceClass = r.pace < 7 ? 'pace-col fast' : (r.pace > 10 ? 'pace-col slow' : 'pace-col');
+        html += `
+            <tr>
+                <td class="date-col">${r.date}</td>
+                <td class="num-col">${r.dist.toFixed(2)}</td>
+                <td class="num-col ${paceClass}">${r.pace.toFixed(2)}</td>
+                <td class="num-col">${Math.round(r.energy)}</td>
+                <td class="num-col">${(r.pace5k || r.pace * 5).toFixed(2)}</td>
+                ${showDelete ? `<td style="text-align:center;"><button class="delete-btn" data-date="${r.date}" data-dist="${r.dist}" data-pace="${r.pace}">✕</button></td>` : ''}
+            </tr>
+        `;
+    });
+    html += `</tbody>`;
+    el.innerHTML = html;
+
+    if (showDelete) {
+        el.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async function() {
+                const date = this.dataset.date;
+                const dist = parseFloat(this.dataset.dist);
+                const pace = parseFloat(this.dataset.pace);
+                let runs = await loadRuns();
+                const idx = runs.findIndex(r => r.date === date && Math.abs(r.dist - dist) < 0.001 &&
+                    Math.abs(r.pace - pace) < 0.001);
+                if (idx > -1) {
+                    runs.splice(idx, 1);
+                    await saveRuns(runs);
+                    await refreshDashboard();
                 }
             });
-            groups.overview.sort((a, b) => new Date(a.date) - new Date(b.date));
-            groups.trends.sort((a, b) => new Date(a.date) - new Date(b.date));
-            return groups;
-        }
+        });
+    }
+}
 
-        function calcStats(runs) {
-            if (!runs.length) return { count: 0, totalDist: 0, avgPace: 0, totalEnergy: 0, avg5k: 0 };
-            const n = runs.length;
-            const totalDist = runs.reduce((s, r) => s + r.dist, 0);
-            const totalEnergy = runs.reduce((s, r) => s + r.energy, 0);
-            const avgPace = runs.reduce((s, r) => s + r.pace, 0) / n;
-            const avg5k = runs.reduce((s, r) => s + (r.pace5k || r.pace * 5), 0) / n;
-            return { count: n, totalDist, avgPace, totalEnergy, avg5k };
-        }
+// ── chart rendering ──
+const chartInstances = {};
 
-        // ── rolling average ──
-        function rollingAverage(data, windowSize = 3) {
-            const result = [];
-            for (let i = 0; i < data.length; i++) {
-                const start = Math.max(0, i - Math.floor(windowSize / 2));
-                const end = Math.min(data.length, i + Math.ceil(windowSize / 2));
-                const slice = data.slice(start, end);
-                const avg = slice.reduce((s, v) => s + v, 0) / slice.length;
-                result.push(avg);
-            }
-            return result;
-        }
+function renderMonthlyChart(canvasId, runs) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (chartInstances[canvasId]) {
+        chartInstances[canvasId].destroy();
+        delete chartInstances[canvasId];
+    }
+    const parent = canvas.parentElement;
+    const oldMsg = parent.querySelector('.empty-state');
+    if (oldMsg) oldMsg.remove();
 
-        // ── Excel date helper ──
-        function excelSerialToDate(serial) {
-            const epoch = new Date(1899, 11, 30);
-            const date = new Date(epoch.getTime() + serial * 86400000);
-            return date.toISOString().split('T')[0];
-        }
+    if (!runs.length) {
+        const msg = document.createElement('div');
+        msg.className = 'empty-state';
+        msg.style.padding = '16px';
+        msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
+        parent.appendChild(msg);
+        return;
+    }
 
-        function isExcelDate(value) {
-            if (typeof value !== 'number') return false;
-            if (value < 10000 || value > 100000) return false;
-            return Number.isInteger(value);
-        }
+    const labels = runs.map(r => r.date.slice(5));
+    const distData = runs.map(r => r.dist);
+    const paceData = runs.map(r => r.pace);
 
-        // ── format date for x-axis ──
-        function formatDateLabel(dateStr) {
-            const d = new Date(dateStr);
-            if (isNaN(d.getTime())) return dateStr;
-            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            return months[d.getMonth()] + ' ' + d.getDate();
-        }
-
-        // ── render functions ──
-        function updateOverall(runs) {
-            const all = runs || loadRuns();
-            const n = all.length;
-            if (!n) {
-                document.getElementById('statTotalDist').textContent = '0';
-                document.getElementById('statAvgPace').textContent = '—';
-                document.getElementById('statTotalEnergy').textContent = '0';
-                document.getElementById('statTotalRuns').textContent = '0';
-                document.getElementById('dataStatus').textContent = 'no runs yet — add one above!';
-                return;
-            }
-            const totalDist = all.reduce((s, r) => s + r.dist, 0);
-            const totalEnergy = all.reduce((s, r) => s + r.energy, 0);
-            const avgPace = all.reduce((s, r) => s + r.pace, 0) / n;
-            document.getElementById('statTotalDist').textContent = totalDist.toFixed(1);
-            document.getElementById('statAvgPace').textContent = avgPace.toFixed(2);
-            document.getElementById('statTotalEnergy').textContent = Math.round(totalEnergy);
-            document.getElementById('statTotalRuns').textContent = n;
-            document.getElementById('dataStatus').textContent = `${n} runs stored locally ✅`;
-        }
-
-        function renderSummary(containerId, stats) {
-            const el = document.getElementById(containerId);
-            if (!el) return;
-            if (!stats.count) {
-                el.innerHTML = `<div class="empty-state"><div class="big">📭</div>No runs</div>`;
-                return;
-            }
-            el.innerHTML = `
-                <div class="summary-card"><div class="num blue">${stats.count}</div><div class="lbl">Runs</div></div>
-                <div class="summary-card"><div class="num green">${stats.totalDist.toFixed(1)}</div><div class="lbl">Total km</div></div>
-                <div class="summary-card"><div class="num orange">${stats.avgPace.toFixed(2)}</div><div class="lbl">Avg Pace</div></div>
-                <div class="summary-card"><div class="num pink">${Math.round(stats.totalEnergy)}</div><div class="lbl">Total cal</div></div>
-                <div class="summary-card"><div class="num purple">${stats.avg5k.toFixed(2)}</div><div class="lbl">Avg 5k Pace</div></div>
-            `;
-        }
-
-        function renderTable(tableId, runs, showDelete = true) {
-            const el = document.getElementById(tableId);
-            if (!el) return;
-            if (!runs.length) {
-                el.innerHTML = `<tr><td colspan="${showDelete ? 6 : 5}" style="text-align:center;padding:24px;color:#5a6a82;">No runs</td></tr>`;
-                return;
-            }
-            let html = `
-                <thead><tr>
-                    <th>Date</th>
-                    <th style="text-align:right;">Distance</th>
-                    <th style="text-align:right;">Pace</th>
-                    <th style="text-align:right;">Energy</th>
-                    <th style="text-align:right;">5k Pace</th>
-                    ${showDelete ? '<th style="text-align:center;">🗑️</th>' : ''}
-                </tr></thead><tbody>
-            `;
-            runs.forEach((r) => {
-                const paceClass = r.pace < 7 ? 'pace-col fast' : (r.pace > 10 ? 'pace-col slow' : 'pace-col');
-                html += `
-                    <tr>
-                        <td class="date-col">${r.date}</td>
-                        <td class="num-col">${r.dist.toFixed(2)}</td>
-                        <td class="num-col ${paceClass}">${r.pace.toFixed(2)}</td>
-                        <td class="num-col">${Math.round(r.energy)}</td>
-                        <td class="num-col">${(r.pace5k || r.pace * 5).toFixed(2)}</td>
-                        ${showDelete ? `<td style="text-align:center;"><button class="delete-btn" data-date="${r.date}" data-dist="${r.dist}" data-pace="${r.pace}">✕</button></td>` : ''}
-                    </tr>
-                `;
-            });
-            html += `</tbody>`;
-            el.innerHTML = html;
-
-            if (showDelete) {
-                el.querySelectorAll('.delete-btn').forEach(btn => {
-                    btn.addEventListener('click', async function() {
-                        const date = this.dataset.date;
-                        const dist = parseFloat(this.dataset.dist);
-                        const pace = parseFloat(this.dataset.pace);
-                        let runs = loadRuns();
-                        const idx = runs.findIndex(r => r.date === date && Math.abs(r.dist - dist) < 0.001 &&
-                            Math.abs(r.pace - pace) < 0.001);
-                        if (idx > -1) {
-                            runs.splice(idx, 1);
-                            saveRuns(runs);
-                            refreshDashboard();
-                        }
-                    });
-                });
-            }
-        }
-
-        // ── chart rendering ──
-        const chartInstances = {};
-
-        // ── Monthly chart (bar + line) ──
-        function renderMonthlyChart(canvasId, runs) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            if (chartInstances[canvasId]) {
-                chartInstances[canvasId].destroy();
-                delete chartInstances[canvasId];
-            }
-            const parent = canvas.parentElement;
-            const oldMsg = parent.querySelector('.empty-state');
-            if (oldMsg) oldMsg.remove();
-
-            if (!runs.length) {
-                const msg = document.createElement('div');
-                msg.className = 'empty-state';
-                msg.style.padding = '16px';
-                msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
-                parent.appendChild(msg);
-                return;
-            }
-
-            const labels = runs.map(r => r.date.slice(5));
-            const distData = runs.map(r => r.dist);
-            const paceData = runs.map(r => r.pace);
-
-            chartInstances[canvasId] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Distance (km)',
-                        data: distData,
-                        backgroundColor: 'rgba(111, 195, 255, 0.55)',
-                        borderColor: 'rgba(111, 195, 255, 0.9)',
-                        borderWidth: 1.5,
-                        borderRadius: 4,
-                        order: 2,
-                        yAxisID: 'y',
-                    }, {
-                        label: 'Pace (min/km)',
-                        data: paceData,
-                        type: 'line',
-                        borderColor: '#f5b06b',
-                        backgroundColor: 'rgba(245, 176, 107, 0.10)',
-                        pointBackgroundColor: '#f5b06b',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 1.5,
-                        pointRadius: 3.5,
-                        tension: 0.25,
-                        fill: true,
-                        order: 1,
-                        yAxisID: 'y1',
-                    }]
+    chartInstances[canvasId] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Distance (km)',
+                data: distData,
+                backgroundColor: 'rgba(111, 195, 255, 0.55)',
+                borderColor: 'rgba(111, 195, 255, 0.9)',
+                borderWidth: 1.5,
+                borderRadius: 4,
+                order: 2,
+                yAxisID: 'y',
+            }, {
+                label: 'Pace (min/km)',
+                data: paceData,
+                type: 'line',
+                borderColor: '#f5b06b',
+                backgroundColor: 'rgba(245, 176, 107, 0.10)',
+                pointBackgroundColor: '#f5b06b',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1.5,
+                pointRadius: 3.5,
+                tension: 0.25,
+                fill: true,
+                order: 1,
+                yAxisID: 'y1',
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2.4,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                legend: {
+                    labels: { color: '#a0b4cc', font: { size: 10, weight: '500' }, boxWidth: 12,
+                        padding: 12 }
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: 2.4,
-                    interaction: { mode: 'index', intersect: false },
-                    plugins: {
-                        legend: {
-                            labels: { color: '#a0b4cc', font: { size: 10, weight: '500' }, boxWidth: 12,
-                                padding: 12 }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(20, 27, 38, 0.92)',
-                            titleColor: '#e8edf5',
-                            bodyColor: '#c8d4e8',
-                            borderColor: '#2a3548',
-                            borderWidth: 1,
-                            padding: 8,
-                            callbacks: {
-                                label: function(ctx) {
-                                    let label = ctx.dataset.label || '';
-                                    let val = ctx.parsed.y;
-                                    if (ctx.dataset.label.includes('Pace')) {
-                                        return label + ': ' + val.toFixed(2) + ' min/km';
-                                    }
-                                    return label + ': ' + val.toFixed(2) + ' km';
-                                }
+                tooltip: {
+                    backgroundColor: 'rgba(20, 27, 38, 0.92)',
+                    titleColor: '#e8edf5',
+                    bodyColor: '#c8d4e8',
+                    borderColor: '#2a3548',
+                    borderWidth: 1,
+                    padding: 8,
+                    callbacks: {
+                        label: function(ctx) {
+                            let label = ctx.dataset.label || '';
+                            let val = ctx.parsed.y;
+                            if (ctx.dataset.label.includes('Pace')) {
+                                return label + ': ' + val.toFixed(2) + ' min/km';
                             }
-                        }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                            ticks: { color: '#7a8aa3', font: { size: 9 }, maxRotation: 30, autoSkip: true },
-                        },
-                        y: {
-                            position: 'left',
-                            title: { display: true, text: 'Distance (km)', color: '#7a8aa3', font: { size: 9,
-                                    weight: '500' } },
-                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-                            ticks: { color: '#7a8aa3', font: { size: 8 } },
-                            beginAtZero: true,
-                        },
-                        y1: {
-                            position: 'right',
-                            title: { display: true, text: 'Pace (min/km)', color: '#7a8aa3', font: { size: 9,
-                                    weight: '500' } },
-                            grid: { drawOnChartArea: false },
-                            ticks: { color: '#7a8aa3', font: { size: 8 } },
-                            beginAtZero: true,
+                            return label + ': ' + val.toFixed(2) + ' km';
                         }
                     }
                 }
-            });
-        }
-
-        // ── Trends charts (full width, dynamic x-axis labels) ──
-        function renderTrendsCharts(runs) {
-            const goal = parseFloat(document.getElementById('paceGoal').value) || 5.0;
-            const totalRuns = runs.length;
-            const targetLabels = 15;
-            const step = Math.max(1, Math.ceil(totalRuns / targetLabels));
-
-            // Generate labels at indices 0, step, 2*step, ...
-            const labelIndices = [];
-            for (let i = 0; i < totalRuns; i += step) {
-                labelIndices.push(i);
-            }
-            // Always include the last run if not already included
-            if (labelIndices[labelIndices.length - 1] !== totalRuns - 1 && totalRuns > 0) {
-                labelIndices.push(totalRuns - 1);
-            }
-
-            // ── Distance chart ──
-            const distCanvas = document.getElementById('chart-trends-dist');
-            if (distCanvas) {
-                const ctx = distCanvas.getContext('2d');
-                if (chartInstances['chart-trends-dist']) {
-                    chartInstances['chart-trends-dist'].destroy();
-                    delete chartInstances['chart-trends-dist'];
-                }
-                const parent = distCanvas.parentElement;
-                const oldMsg = parent.querySelector('.empty-state');
-                if (oldMsg) oldMsg.remove();
-
-                if (!runs.length) {
-                    const msg = document.createElement('div');
-                    msg.className = 'empty-state';
-                    msg.style.padding = '16px';
-                    msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
-                    parent.appendChild(msg);
-                    return;
-                }
-
-                const distData = runs.map(r => r.dist);
-                const distTrend = rollingAverage(distData, 3);
-
-                chartInstances['chart-trends-dist'] = new Chart(ctx, {
-                    type: 'scatter',
-                    data: {
-                        datasets: [{
-                            label: 'Distance (km)',
-                            data: runs.map((r, i) => ({ x: i, y: r.dist })),
-                            backgroundColor: 'rgba(111, 195, 255, 0.7)',
-                            borderColor: 'rgba(111, 195, 255, 0.9)',
-                            borderWidth: 1.5,
-                            pointRadius: 4,
-                            showLine: false,
-                        }, {
-                            label: 'Trend (3-run avg)',
-                            data: distTrend.map((v, i) => ({ x: i, y: v })),
-                            borderColor: '#5cd6a2',
-                            backgroundColor: 'rgba(92, 214, 162, 0.15)',
-                            borderWidth: 2.5,
-                            pointRadius: 0,
-                            fill: true,
-                            tension: 0.3,
-                            showLine: true,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        aspectRatio: 2.8,
-                        plugins: {
-                            legend: {
-                                labels: { color: '#a0b4cc', font: { size: 10, weight: '500' }, boxWidth: 12,
-                                    padding: 12 }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(20, 27, 38, 0.92)',
-                                titleColor: '#e8edf5',
-                                bodyColor: '#c8d4e8',
-                                borderColor: '#2a3548',
-                                borderWidth: 1,
-                                padding: 8,
-                                callbacks: {
-                                    label: function(ctx) {
-                                        return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + ' km';
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                                ticks: {
-                                    color: '#7a8aa3',
-                                    font: { size: 10 },
-                                    maxRotation: 35,
-                                    stepSize: step,
-                                    callback: function(value, index) {
-                                        const idx = Math.round(value);
-                                        if (idx < runs.length && labelIndices.includes(idx)) {
-                                            return formatDateLabel(runs[idx].date);
-                                        }
-                                        return '';
-                                    }
-                                },
-                                title: { display: true, text: 'Run #', color: '#7a8aa3', font: { size: 10,
-                                        weight: '500' } }
-                            },
-                            y: {
-                                title: { display: true, text: 'Distance (km)', color: '#7a8aa3', font: { size: 10,
-                                        weight: '500' } },
-                                grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-                                ticks: { color: '#7a8aa3', font: { size: 9 } },
-                                beginAtZero: true,
-                            }
-                        }
-                    }
-                });
-            }
-
-            // ── Pace chart ──
-            const paceCanvas = document.getElementById('chart-trends-pace');
-            if (paceCanvas) {
-                const ctx = paceCanvas.getContext('2d');
-                if (chartInstances['chart-trends-pace']) {
-                    chartInstances['chart-trends-pace'].destroy();
-                    delete chartInstances['chart-trends-pace'];
-                }
-                const parent = paceCanvas.parentElement;
-                const oldMsg = parent.querySelector('.empty-state');
-                if (oldMsg) oldMsg.remove();
-
-                if (!runs.length) {
-                    const msg = document.createElement('div');
-                    msg.className = 'empty-state';
-                    msg.style.padding = '16px';
-                    msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
-                    parent.appendChild(msg);
-                    return;
-                }
-
-                const paceData = runs.map(r => r.pace);
-                const paceTrend = rollingAverage(paceData, 3);
-                const goalData = runs.map(() => goal);
-
-                chartInstances['chart-trends-pace'] = new Chart(ctx, {
-                    type: 'scatter',
-                    data: {
-                        datasets: [{
-                            label: 'Pace (min/km)',
-                            data: runs.map((r, i) => ({ x: i, y: r.pace })),
-                            backgroundColor: 'rgba(245, 176, 107, 0.7)',
-                            borderColor: 'rgba(245, 176, 107, 0.9)',
-                            borderWidth: 1.5,
-                            pointRadius: 4,
-                            showLine: false,
-                        }, {
-                            label: 'Trend (3-run avg)',
-                            data: paceTrend.map((v, i) => ({ x: i, y: v })),
-                            borderColor: '#6fc3ff',
-                            backgroundColor: 'rgba(111, 195, 255, 0.15)',
-                            borderWidth: 2.5,
-                            pointRadius: 0,
-                            fill: true,
-                            tension: 0.3,
-                            showLine: true,
-                        }, {
-                            label: `🎯 Goal: ${goal.toFixed(2)} min/km`,
-                            data: goalData.map((v, i) => ({ x: i, y: v })),
-                            borderColor: '#f5b06b',
-                            backgroundColor: 'rgba(245, 176, 107, 0.05)',
-                            borderWidth: 2,
-                            borderDash: [6, 4],
-                            pointRadius: 0,
-                            fill: false,
-                            showLine: true,
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        aspectRatio: 2.8,
-                        plugins: {
-                            legend: {
-                                labels: { color: '#a0b4cc', font: { size: 10, weight: '500' }, boxWidth: 12,
-                                    padding: 12 }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(20, 27, 38, 0.92)',
-                                titleColor: '#e8edf5',
-                                bodyColor: '#c8d4e8',
-                                borderColor: '#2a3548',
-                                borderWidth: 1,
-                                padding: 8,
-                                callbacks: {
-                                    label: function(ctx) {
-                                        if (ctx.dataset.label.includes('Goal')) {
-                                            return ctx.dataset.label;
-                                        }
-                                        return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) +
-                                        ' min/km';
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                                ticks: {
-                                    color: '#7a8aa3',
-                                    font: { size: 10 },
-                                    maxRotation: 35,
-                                    stepSize: step,
-                                    callback: function(value, index) {
-                                        const idx = Math.round(value);
-                                        if (idx < runs.length && labelIndices.includes(idx)) {
-                                            return formatDateLabel(runs[idx].date);
-                                        }
-                                        return '';
-                                    }
-                                },
-                                title: { display: true, text: 'Run #', color: '#7a8aa3', font: { size: 10,
-                                        weight: '500' } }
-                            },
-                            y: {
-                                title: { display: true, text: 'Pace (min/km)', color: '#7a8aa3', font: { size: 10,
-                                        weight: '500' } },
-                                grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-                                ticks: { color: '#7a8aa3', font: { size: 9 } },
-                                beginAtZero: true,
-                            }
-                        }
-                    }
-                });
-            }
-        }
-
-        // ── Calories per km chart (Overview) ──
-        function renderCalPerKmChart(runs) {
-            const calCanvas = document.getElementById('chart-cal-per-km');
-            if (!calCanvas) return;
-            const ctx = calCanvas.getContext('2d');
-            if (chartInstances['chart-cal-per-km']) {
-                chartInstances['chart-cal-per-km'].destroy();
-                delete chartInstances['chart-cal-per-km'];
-            }
-            const parent = calCanvas.parentElement;
-            const oldMsg = parent.querySelector('.empty-state');
-            if (oldMsg) oldMsg.remove();
-
-            if (!runs.length) {
-                const msg = document.createElement('div');
-                msg.className = 'empty-state';
-                msg.style.padding = '16px';
-                msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
-                parent.appendChild(msg);
-                return;
-            }
-
-            const monthMap = {};
-            runs.forEach(r => {
-                const m = new Date(r.date).getMonth();
-                const label = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m];
-                let key = label;
-                if (m === 1 || m === 2 || m === 3 || m === 4) key = 'Feb-May';
-                if (!monthMap[key]) monthMap[key] = { totalCal: 0, totalDist: 0 };
-                monthMap[key].totalCal += r.energy;
-                monthMap[key].totalDist += r.dist;
-            });
-
-            const sortedKeys = ['Jan', 'Feb-May', 'Jun', 'Jul', 'Aug', 'Sep'];
-            const labels = sortedKeys.filter(k => monthMap[k]);
-            const calPerKm = labels.map(k => {
-                const d = monthMap[k];
-                return d.totalDist > 0 ? d.totalCal / d.totalDist : 0;
-            });
-
-            if (!labels.length) {
-                const msg = document.createElement('div');
-                msg.className = 'empty-state';
-                msg.style.padding = '16px';
-                msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
-                parent.appendChild(msg);
-                return;
-            }
-
-            chartInstances['chart-cal-per-km'] = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Calories per km',
-                        data: calPerKm,
-                        backgroundColor: 'rgba(245, 139, 159, 0.6)',
-                        borderColor: 'rgba(245, 139, 159, 0.9)',
-                        borderWidth: 1.5,
-                        borderRadius: 4,
-                    }]
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+                    ticks: { color: '#7a8aa3', font: { size: 9 }, maxRotation: 30, autoSkip: true },
                 },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: 2.8,
-                    plugins: {
-                        legend: {
-                            labels: { color: '#a0b4cc', font: { size: 10, weight: '500' }, boxWidth: 12,
-                                padding: 12 }
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(20, 27, 38, 0.92)',
-                            titleColor: '#e8edf5',
-                            bodyColor: '#c8d4e8',
-                            borderColor: '#2a3548',
-                            borderWidth: 1,
-                            padding: 8,
-                            callbacks: {
-                                label: function(ctx) {
-                                    return ctx.parsed.y.toFixed(1) + ' cal/km';
-                                }
+                y: {
+                    position: 'left',
+                    title: { display: true, text: 'Distance (km)', color: '#7a8aa3', font: { size: 9,
+                            weight: '500' } },
+                    grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                    ticks: { color: '#7a8aa3', font: { size: 8 } },
+                    beginAtZero: true,
+                },
+                y1: {
+                    position: 'right',
+                    title: { display: true, text: 'Pace (min/km)', color: '#7a8aa3', font: { size: 9,
+                            weight: '500' } },
+                    grid: { drawOnChartArea: false },
+                    ticks: { color: '#7a8aa3', font: { size: 8 } },
+                    beginAtZero: true,
+                }
+            }
+        }
+    });
+}
+
+function renderTrendsCharts(runs) {
+    const goal = parseFloat(document.getElementById('paceGoal').value) || 5.0;
+    const totalRuns = runs.length;
+    const targetLabels = 15;
+    const step = Math.max(1, Math.ceil(totalRuns / targetLabels));
+
+    const labelIndices = [];
+    for (let i = 0; i < totalRuns; i += step) {
+        labelIndices.push(i);
+    }
+    if (labelIndices[labelIndices.length - 1] !== totalRuns - 1 && totalRuns > 0) {
+        labelIndices.push(totalRuns - 1);
+    }
+
+    const distCanvas = document.getElementById('chart-trends-dist');
+    if (distCanvas) {
+        const ctx = distCanvas.getContext('2d');
+        if (chartInstances['chart-trends-dist']) {
+            chartInstances['chart-trends-dist'].destroy();
+            delete chartInstances['chart-trends-dist'];
+        }
+        const parent = distCanvas.parentElement;
+        const oldMsg = parent.querySelector('.empty-state');
+        if (oldMsg) oldMsg.remove();
+
+        if (!runs.length) {
+            const msg = document.createElement('div');
+            msg.className = 'empty-state';
+            msg.style.padding = '16px';
+            msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
+            parent.appendChild(msg);
+            return;
+        }
+
+        const distData = runs.map(r => r.dist);
+        const distTrend = rollingAverage(distData, 3);
+
+        chartInstances['chart-trends-dist'] = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Distance (km)',
+                    data: runs.map((r, i) => ({ x: i, y: r.dist })),
+                    backgroundColor: 'rgba(111, 195, 255, 0.7)',
+                    borderColor: 'rgba(111, 195, 255, 0.9)',
+                    borderWidth: 1.5,
+                    pointRadius: 4,
+                    showLine: false,
+                }, {
+                    label: 'Trend (3-run avg)',
+                    data: distTrend.map((v, i) => ({ x: i, y: v })),
+                    borderColor: '#5cd6a2',
+                    backgroundColor: 'rgba(92, 214, 162, 0.15)',
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    fill: true,
+                    tension: 0.3,
+                    showLine: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2.8,
+                plugins: {
+                    legend: {
+                        labels: { color: '#a0b4cc', font: { size: 10, weight: '500' }, boxWidth: 12,
+                            padding: 12 }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(20, 27, 38, 0.92)',
+                        titleColor: '#e8edf5',
+                        bodyColor: '#c8d4e8',
+                        borderColor: '#2a3548',
+                        borderWidth: 1,
+                        padding: 8,
+                        callbacks: {
+                            label: function(ctx) {
+                                return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) + ' km';
                             }
                         }
-                    },
-                    scales: {
-                        x: {
-                            grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                            ticks: { color: '#7a8aa3', font: { size: 10 } }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+                        ticks: {
+                            color: '#7a8aa3',
+                            font: { size: 10 },
+                            maxRotation: 35,
+                            stepSize: step,
+                            callback: function(value, index) {
+                                const idx = Math.round(value);
+                                if (idx < runs.length && labelIndices.includes(idx)) {
+                                    return formatDateLabel(runs[idx].date);
+                                }
+                                return '';
+                            }
                         },
-                        y: {
-                            title: { display: true, text: 'Calories / km', color: '#7a8aa3', font: { size: 10,
-                                    weight: '500' } },
-                            grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
-                            ticks: { color: '#7a8aa3', font: { size: 9 } },
-                            beginAtZero: true,
+                        title: { display: true, text: 'Run #', color: '#7a8aa3', font: { size: 10,
+                                weight: '500' } }
+                    },
+                    y: {
+                        title: { display: true, text: 'Distance (km)', color: '#7a8aa3', font: { size: 10,
+                                weight: '500' } },
+                        grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                        ticks: { color: '#7a8aa3', font: { size: 9 } },
+                        beginAtZero: true,
+                    }
+                }
+            }
+        });
+    }
+
+    const paceCanvas = document.getElementById('chart-trends-pace');
+    if (paceCanvas) {
+        const ctx = paceCanvas.getContext('2d');
+        if (chartInstances['chart-trends-pace']) {
+            chartInstances['chart-trends-pace'].destroy();
+            delete chartInstances['chart-trends-pace'];
+        }
+        const parent = paceCanvas.parentElement;
+        const oldMsg = parent.querySelector('.empty-state');
+        if (oldMsg) oldMsg.remove();
+
+        if (!runs.length) {
+            const msg = document.createElement('div');
+            msg.className = 'empty-state';
+            msg.style.padding = '16px';
+            msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
+            parent.appendChild(msg);
+            return;
+        }
+
+        const paceData = runs.map(r => r.pace);
+        const paceTrend = rollingAverage(paceData, 3);
+        const goalData = runs.map(() => goal);
+
+        chartInstances['chart-trends-pace'] = new Chart(ctx, {
+            type: 'scatter',
+            data: {
+                datasets: [{
+                    label: 'Pace (min/km)',
+                    data: runs.map((r, i) => ({ x: i, y: r.pace })),
+                    backgroundColor: 'rgba(245, 176, 107, 0.7)',
+                    borderColor: 'rgba(245, 176, 107, 0.9)',
+                    borderWidth: 1.5,
+                    pointRadius: 4,
+                    showLine: false,
+                }, {
+                    label: 'Trend (3-run avg)',
+                    data: paceTrend.map((v, i) => ({ x: i, y: v })),
+                    borderColor: '#6fc3ff',
+                    backgroundColor: 'rgba(111, 195, 255, 0.15)',
+                    borderWidth: 2.5,
+                    pointRadius: 0,
+                    fill: true,
+                    tension: 0.3,
+                    showLine: true,
+                }, {
+                    label: `🎯 Goal: ${goal.toFixed(2)} min/km`,
+                    data: goalData.map((v, i) => ({ x: i, y: v })),
+                    borderColor: '#f5b06b',
+                    backgroundColor: 'rgba(245, 176, 107, 0.05)',
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    pointRadius: 0,
+                    fill: false,
+                    showLine: true,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                aspectRatio: 2.8,
+                plugins: {
+                    legend: {
+                        labels: { color: '#a0b4cc', font: { size: 10, weight: '500' }, boxWidth: 12,
+                            padding: 12 }
+                    },
+                    tooltip: {
+                        backgroundColor: 'rgba(20, 27, 38, 0.92)',
+                        titleColor: '#e8edf5',
+                        bodyColor: '#c8d4e8',
+                        borderColor: '#2a3548',
+                        borderWidth: 1,
+                        padding: 8,
+                        callbacks: {
+                            label: function(ctx) {
+                                if (ctx.dataset.label.includes('Goal')) {
+                                    return ctx.dataset.label;
+                                }
+                                return ctx.dataset.label + ': ' + ctx.parsed.y.toFixed(2) +
+                                ' min/km';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+                        ticks: {
+                            color: '#7a8aa3',
+                            font: { size: 10 },
+                            maxRotation: 35,
+                            stepSize: step,
+                            callback: function(value, index) {
+                                const idx = Math.round(value);
+                                if (idx < runs.length && labelIndices.includes(idx)) {
+                                    return formatDateLabel(runs[idx].date);
+                                }
+                                return '';
+                            }
+                        },
+                        title: { display: true, text: 'Run #', color: '#7a8aa3', font: { size: 10,
+                                weight: '500' } }
+                    },
+                    y: {
+                        title: { display: true, text: 'Pace (min/km)', color: '#7a8aa3', font: { size: 10,
+                                weight: '500' } },
+                        grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                        ticks: { color: '#7a8aa3', font: { size: 9 } },
+                        beginAtZero: true,
+                    }
+                }
+            }
+        });
+    }
+}
+
+function renderCalPerKmChart(runs) {
+    const calCanvas = document.getElementById('chart-cal-per-km');
+    if (!calCanvas) return;
+    const ctx = calCanvas.getContext('2d');
+    if (chartInstances['chart-cal-per-km']) {
+        chartInstances['chart-cal-per-km'].destroy();
+        delete chartInstances['chart-cal-per-km'];
+    }
+    const parent = calCanvas.parentElement;
+    const oldMsg = parent.querySelector('.empty-state');
+    if (oldMsg) oldMsg.remove();
+
+    if (!runs.length) {
+        const msg = document.createElement('div');
+        msg.className = 'empty-state';
+        msg.style.padding = '16px';
+        msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
+        parent.appendChild(msg);
+        return;
+    }
+
+    const monthMap = {};
+    runs.forEach(r => {
+        const m = new Date(r.date).getMonth();
+        const label = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m];
+        let key = label;
+        if (m === 1 || m === 2 || m === 3 || m === 4) key = 'Feb-May';
+        if (!monthMap[key]) monthMap[key] = { totalCal: 0, totalDist: 0 };
+        monthMap[key].totalCal += r.energy;
+        monthMap[key].totalDist += r.dist;
+    });
+
+    const sortedKeys = ['Jan', 'Feb-May', 'Jun', 'Jul', 'Aug', 'Sep'];
+    const labels = sortedKeys.filter(k => monthMap[k]);
+    const calPerKm = labels.map(k => {
+        const d = monthMap[k];
+        return d.totalDist > 0 ? d.totalCal / d.totalDist : 0;
+    });
+
+    if (!labels.length) {
+        const msg = document.createElement('div');
+        msg.className = 'empty-state';
+        msg.style.padding = '16px';
+        msg.innerHTML = '<span style="font-size:1.2rem;">📊</span><br>No data';
+        parent.appendChild(msg);
+        return;
+    }
+
+    chartInstances['chart-cal-per-km'] = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Calories per km',
+                data: calPerKm,
+                backgroundColor: 'rgba(245, 139, 159, 0.6)',
+                borderColor: 'rgba(245, 139, 159, 0.9)',
+                borderWidth: 1.5,
+                borderRadius: 4,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            aspectRatio: 2.8,
+            plugins: {
+                legend: {
+                    labels: { color: '#a0b4cc', font: { size: 10, weight: '500' }, boxWidth: 12,
+                        padding: 12 }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(20, 27, 38, 0.92)',
+                    titleColor: '#e8edf5',
+                    bodyColor: '#c8d4e8',
+                    borderColor: '#2a3548',
+                    borderWidth: 1,
+                    padding: 8,
+                    callbacks: {
+                        label: function(ctx) {
+                            return ctx.parsed.y.toFixed(1) + ' cal/km';
                         }
                     }
                 }
-            });
-        }
-
-        function buildPanel(panelId, runs, chartId, tableId, summaryId, isMonthly = true) {
-            const stats = calcStats(runs);
-            renderSummary(summaryId, stats);
-            renderTable(tableId, runs, true);
-            if (isMonthly) {
-                setTimeout(() => renderMonthlyChart(chartId, runs), 60);
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+                    ticks: { color: '#7a8aa3', font: { size: 10 } }
+                },
+                y: {
+                    title: { display: true, text: 'Calories / km', color: '#7a8aa3', font: { size: 10,
+                            weight: '500' } },
+                    grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false },
+                    ticks: { color: '#7a8aa3', font: { size: 9 } },
+                    beginAtZero: true,
+                }
             }
         }
+    });
+}
 
-    async function refreshDashboard() {
+function buildPanel(panelId, runs, chartId, tableId, summaryId, isMonthly = true) {
+    const stats = calcStats(runs);
+    renderSummary(summaryId, stats);
+    renderTable(tableId, runs, true);
+    if (isMonthly) {
+        setTimeout(() => renderMonthlyChart(chartId, runs), 60);
+    }
+}
+
+async function refreshDashboard() {
+    const runs = await loadRuns();
+    const groups = groupRuns(runs);
+
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        const tab = btn.dataset.tab;
+        let count = 0;
+        if (tab === 'heatmap') {
+            count = groups.trends ? groups.trends.length : 0;
+        } else {
+            count = groups[tab] ? groups[tab].length : 0;
+        }
+        const badge = btn.querySelector('.badge');
+        if (badge) badge.textContent = count;
+    });
+
+    updateOverall(runs);
+
+    const overviewStats = calcStats(groups.overview);
+    renderSummary('summary-overview', overviewStats);
+    renderTable('table-overview', groups.overview, true);
+    setTimeout(() => renderCalPerKmChart(groups.overview), 60);
+
+    setTimeout(() => renderTrendsCharts(groups.trends), 60);
+
+    setTimeout(() => renderHeatmap(groups.trends), 60);
+
+    buildPanel('panel-jan', groups.jan, 'chart-jan', 'table-jan', 'summary-jan');
+    buildPanel('panel-febmay', groups.febmay, 'chart-febmay', 'table-febmay', 'summary-febmay');
+    buildPanel('panel-jun', groups.jun, 'chart-jun', 'table-jun', 'summary-jun');
+    buildPanel('panel-jul', groups.jul, 'chart-jul', 'table-jul', 'summary-jul');
+    buildPanel('panel-aug', groups.aug, 'chart-aug', 'table-aug', 'summary-aug');
+    buildPanel('panel-sep', groups.sep, 'chart-sep', 'table-sep', 'summary-sep');
+}
+
+// ── tab switching ──
+function initTabs() {
+    const buttons = document.querySelectorAll('.tab-btn');
+    const panels = document.querySelectorAll('.tab-panel');
+
+    buttons.forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const tab = this.dataset.tab;
+            buttons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            panels.forEach(p => p.classList.remove('active'));
+            const target = document.getElementById('panel-' + tab);
+            if (target) target.classList.add('active');
+
             const runs = await loadRuns();
             const groups = groupRuns(runs);
-
-            document.querySelectorAll('.tab-btn').forEach(btn => {
-                const tab = btn.dataset.tab;
-                let count = 0;
-                if (tab === 'heatmap') {
-                    count = groups.trends ? groups.trends.length : 0;
-                } else {
-                    count = groups[tab] ? groups[tab].length : 0;
-                }
-                const badge = btn.querySelector('.badge');
-                if (badge) badge.textContent = count;
-            });
-
-            updateOverall(runs);
-
-            // Overview
-            const overviewStats = calcStats(groups.overview);
-            renderSummary('summary-overview', overviewStats);
-            renderTable('table-overview', groups.overview, true);
-            setTimeout(() => renderCalPerKmChart(groups.overview), 60);
-
-            // Trends
-            setTimeout(() => renderTrendsCharts(groups.trends), 60);
-
-            // Heatmap
-            setTimeout(() => renderHeatmap(groups.trends), 60);
-
-            // Monthly
-            buildPanel('panel-jan', groups.jan, 'chart-jan', 'table-jan', 'summary-jan');
-            buildPanel('panel-febmay', groups.febmay, 'chart-febmay', 'table-febmay', 'summary-febmay');
-            buildPanel('panel-jun', groups.jun, 'chart-jun', 'table-jun', 'summary-jun');
-            buildPanel('panel-jul', groups.jul, 'chart-jul', 'table-jul', 'summary-jul');
-            buildPanel('panel-aug', groups.aug, 'chart-aug', 'table-aug', 'summary-aug');
-            buildPanel('panel-sep', groups.sep, 'chart-sep', 'table-sep', 'summary-sep');
-        }
-
-        // ── tab switching ──
-        function initTabs() {
-            const buttons = document.querySelectorAll('.tab-btn');
-            const panels = document.querySelectorAll('.tab-panel');
-
-            buttons.forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const tab = this.dataset.tab;
-                    buttons.forEach(b => b.classList.remove('active'));
-                    this.classList.add('active');
-                    panels.forEach(p => p.classList.remove('active'));
-                    const target = document.getElementById('panel-' + tab);
-                    if (target) target.classList.add('active');
-
-                    // Re-render charts based on tab
-                    const runs = loadRuns();
-                    const groups = groupRuns(runs);
-                    if (tab === 'overview') {
-                        setTimeout(() => renderCalPerKmChart(groups.overview), 50);
-                    } else if (tab === 'trends') {
-                        setTimeout(() => renderTrendsCharts(groups.trends), 50);
-                    } else if (tab === 'heatmap') {
-                        setTimeout(() => renderHeatmap(groups.trends), 50);
-                    } else {
-                        const chartMap = {
-                            jan: 'chart-jan',
-                            febmay: 'chart-febmay',
-                            jun: 'chart-jun',
-                            jul: 'chart-jul',
-                            aug: 'chart-aug',
-                            sep: 'chart-sep'
-                        };
-                        const id = chartMap[tab];
-                        if (id) {
-                            const canvas = document.getElementById(id);
-                            if (canvas) {
-                                const parent = canvas.parentElement;
-                                const oldMsg = parent.querySelector('.empty-state');
-                                if (oldMsg) oldMsg.remove();
-                            }
-                            setTimeout(() => renderMonthlyChart(id, groups[tab] || []), 50);
-                        }
+            if (tab === 'overview') {
+                setTimeout(() => renderCalPerKmChart(groups.overview), 50);
+            } else if (tab === 'trends') {
+                setTimeout(() => renderTrendsCharts(groups.trends), 50);
+            } else if (tab === 'heatmap') {
+                setTimeout(() => renderHeatmap(groups.trends), 50);
+            } else {
+                const chartMap = {
+                    jan: 'chart-jan',
+                    febmay: 'chart-febmay',
+                    jun: 'chart-jun',
+                    jul: 'chart-jul',
+                    aug: 'chart-aug',
+                    sep: 'chart-sep'
+                };
+                const id = chartMap[tab];
+                if (id) {
+                    const canvas = document.getElementById(id);
+                    if (canvas) {
+                        const parent = canvas.parentElement;
+                        const oldMsg = parent.querySelector('.empty-state');
+                        if (oldMsg) oldMsg.remove();
                     }
-                });
-            });
+                    setTimeout(() => renderMonthlyChart(id, groups[tab] || []), 50);
+                }
+            }
+        });
+    });
+}
+
+// ── Add Run ──
+document.getElementById('addRunForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const date = document.getElementById('inputDate').value;
+    const dist = parseFloat(document.getElementById('inputDist').value);
+    const pace = parseFloat(document.getElementById('inputPace').value);
+    const energy = parseFloat(document.getElementById('inputEnergy').value);
+
+    if (!date || isNaN(dist) || isNaN(pace) || isNaN(energy) || dist <= 0 || pace <= 0 || energy <= 0) {
+        alert('Please fill in all fields with valid numbers.');
+        return;
+    }
+
+    const runs = await loadRuns();
+    runs.push({ date, dist, pace, energy, pace5k: pace * 5 });
+    await saveRuns(runs);
+    await refreshDashboard();
+
+    document.getElementById('inputDist').value = '';
+    document.getElementById('inputPace').value = '';
+    document.getElementById('inputEnergy').value = '';
+});
+
+// ── Goal change ──
+document.getElementById('paceGoal').addEventListener('change', async function() {
+    const runs = await loadRuns();
+    const groups = groupRuns(runs);
+    renderTrendsCharts(groups.trends);
+});
+
+document.getElementById('paceGoal').addEventListener('input', async function() {
+    const runs = await loadRuns();
+    const groups = groupRuns(runs);
+    renderTrendsCharts(groups.trends);
+});
+
+// ── Export JSON ──
+document.getElementById('btnExport').addEventListener('click', async function() {
+    const runs = await loadRuns();
+    if (!runs.length) {
+        alert('No runs to export!');
+        return;
+    }
+    const blob = new Blob([JSON.stringify(runs, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `run_tracker_backup_${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+// ── Import JSON ──
+document.getElementById('btnImport').addEventListener('click', function() {
+    document.getElementById('fileInput').click();
+});
+
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async function(ev) {
+        try {
+            const data = JSON.parse(ev.target.result);
+            if (!Array.isArray(data) || !data.length) {
+                alert('Invalid file: expected array of runs.');
+                return;
+            }
+            const first = data[0];
+            if (!first.date || !first.dist || !first.pace || !first.energy) {
+                alert('Invalid format: each run needs date, dist, pace, energy.');
+                return;
+            }
+            if (confirm(`Import ${data.length} runs? This will replace all current data.`)) {
+                await saveRuns(data);
+                await refreshDashboard();
+                alert(`✅ Imported ${data.length} runs successfully!`);
+            }
+        } catch (err) {
+            alert('Error reading file: ' + err.message);
         }
+    };
+    reader.readAsText(file);
+    this.value = '';
+});
 
-        // ── Add Run ──
-        document.getElementById('addRunForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const date = document.getElementById('inputDate').value;
-            const dist = parseFloat(document.getElementById('inputDist').value);
-            const pace = parseFloat(document.getElementById('inputPace').value);
-            const energy = parseFloat(document.getElementById('inputEnergy').value);
+// ── Import EXCEL ──
+document.getElementById('btnExcelImport').addEventListener('click', function() {
+    document.getElementById('excelInput').click();
+});
 
-            if (!date || isNaN(dist) || isNaN(pace) || isNaN(energy) || dist <= 0 || pace <= 0 || energy <= 0) {
-                alert('Please fill in all fields with valid numbers.');
+document.getElementById('excelInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async function(ev) {
+        try {
+            const data = new Uint8Array(ev.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+
+            const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: '', header: 1 });
+
+            if (!jsonData || !jsonData.length) {
+                alert('No data found in the Excel file.');
                 return;
             }
 
-            const runs = await loadRuns();
-            runs.push({ date, dist, pace, energy, pace5k: pace * 5 });
-            await saveRuns(runs);
-            refreshDashboard();
+            let headerRowIndex = -1;
+            let headers = [];
 
-            document.getElementById('inputDist').value = '';
-            document.getElementById('inputPace').value = '';
-            document.getElementById('inputEnergy').value = '';
-        });
+            for (let i = 0; i < Math.min(jsonData.length, 10); i++) {
+                const row = jsonData[i];
+                const hasDate = row.some(cell => cell && cell.toString().toLowerCase().includes('date'));
+                const hasDistance = row.some(cell => cell && cell.toString().toLowerCase().includes(
+                    'distance'));
+                const hasPace = row.some(cell => cell && cell.toString().toLowerCase().includes('pace') &&
+                    !cell.toString().toLowerCase().includes('5k'));
 
-        // ── Goal change ──
-        document.getElementById('paceGoal').addEventListener('change', async function() {
-           const runs = await loadRuns();
-           const groups = groupRuns(runs);
-           renderTrendsCharts(groups.trends);
-       });
-
-        document.getElementById('paceGoal').addEventListener('input', async function() {
-        const runs = await loadRuns();
-        const groups = groupRuns(runs);
-        renderTrendsCharts(groups.trends);
-       });
-
-        // ── Export JSON ──
-        document.getElementById('btnExport').addEventListener('click', async function() {
-        const runs = await loadRuns();
-            if (!runs.length) {
-                alert('No runs to export!');
-                return;
-            }
-            const blob = new Blob([JSON.stringify(runs, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `run_tracker_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-            URL.revokeObjectURL(url);
-        });
-
-        // ── Import JSON ──
-        document.getElementById('btnImport').addEventListener('click', function() {
-            document.getElementById('fileInput').click();
-        });
-
-        document.getElementById('fileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                try {
-                    const data = JSON.parse(ev.target.result);
-                    if (!Array.isArray(data) || !data.length) {
-                        alert('Invalid file: expected array of runs.');
-                        return;
-                    }
-                    const first = data[0];
-                    if (!first.date || !first.dist || !first.pace || !first.energy) {
-                        alert('Invalid format: each run needs date, dist, pace, energy.');
-                        return;
-                    }
-                    if (confirm(`Import ${data.length} runs? This will replace all current data.`)) {
-                        saveRuns(data);
-                        refreshDashboard();
-                        alert(`✅ Imported ${data.length} runs successfully!`);
-                    }
-                } catch (err) {
-                    alert('Error reading file: ' + err.message);
-                }
-            };
-            reader.readAsText(file);
-            this.value = '';
-        });
-
-        // ── Import EXCEL ──
-        document.getElementById('btnExcelImport').addEventListener('click', function() {
-            document.getElementById('excelInput').click();
-        });
-
-        document.getElementById('excelInput').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                try {
-                    const data = new Uint8Array(ev.target.result);
-                    const workbook = XLSX.read(data, { type: 'array' });
-
-                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const jsonData = XLSX.utils.sheet_to_json(firstSheet, { defval: '', header: 1 });
-
-                    if (!jsonData || !jsonData.length) {
-                        alert('No data found in the Excel file.');
-                        return;
-                    }
-
-                    let headerRowIndex = -1;
-                    let headers = [];
-
-                    for (let i = 0; i < Math.min(jsonData.length, 10); i++) {
-                        const row = jsonData[i];
-                        const hasDate = row.some(cell => cell && cell.toString().toLowerCase().includes('date'));
-                        const hasDistance = row.some(cell => cell && cell.toString().toLowerCase().includes(
-                            'distance'));
-                        const hasPace = row.some(cell => cell && cell.toString().toLowerCase().includes('pace') &&
-                            !cell.toString().toLowerCase().includes('5k'));
-
-                        if (hasDate && hasDistance && hasPace) {
-                            headerRowIndex = i;
-                            headers = row.map(h => h ? h.toString().trim() : '');
-                            break;
-                        }
-                    }
-
-                    if (headerRowIndex === -1) {
-                        alert('Could not find header row with Date, Distance, and Pace columns.');
-                        return;
-                    }
-
-                    const dateIdx = headers.findIndex(h => h.toLowerCase().includes('date'));
-                    const distIdx = headers.findIndex(h => h.toLowerCase().includes('distance'));
-                    const paceIdx = headers.findIndex(h => h.toLowerCase().includes('pace') && !h.toLowerCase()
-                        .includes('5k'));
-                    const energyIdx = headers.findIndex(h => h.toLowerCase().includes('energy') || h.toLowerCase()
-                        .includes('cal'));
-                    const pace5kIdx = headers.findIndex(h => h.toLowerCase().includes('5k') && h.toLowerCase()
-                        .includes('pace'));
-
-                    const runs = [];
-                    for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
-                        const row = jsonData[i];
-                        if (!row || row.length === 0) continue;
-
-                        let date = row[dateIdx] || '';
-                        const dist = parseFloat(row[distIdx]) || 0;
-                        const pace = parseFloat(row[paceIdx]) || 0;
-                        const energy = parseFloat(row[energyIdx]) || 0;
-                        let pace5k = parseFloat(row[pace5kIdx]);
-                        if (isNaN(pace5k)) pace5k = pace * 5;
-
-                        if (typeof date === 'number' && isExcelDate(date)) {
-                            date = excelSerialToDate(date);
-                        } else {
-                            let dateStr = date.toString().trim();
-                            if (dateStr.includes(' ')) {
-                                dateStr = dateStr.split(' ')[0];
-                            }
-                            date = dateStr;
-                        }
-
-                        if (!date || dist <= 0 || pace <= 0) continue;
-
-                        runs.push({ date, dist, pace, energy, pace5k });
-                    }
-
-                    if (!runs.length) {
-                        alert('No valid runs found in the Excel file.');
-                        return;
-                    }
-
-                    if (confirm(`Import ${runs.length} runs from Excel? This will replace all current data.`)) {
-                        saveRuns(runs);
-                        refreshDashboard();
-                        alert(`✅ Imported ${runs.length} runs successfully!`);
-                    }
-
-                } catch (err) {
-                    alert('Error reading Excel file: ' + err.message);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-            this.value = '';
-        });
-
-        // ── Clear All ──
-        document.getElementById('btnClearAll').addEventListener('click', async function() {
-         const runs = await loadRuns();
-         if (!runs.length) {
-                alert('No data to clear.');
-                return;
-            }
-            if (confirm(`⚠️ Delete ALL ${runs.length} runs? This cannot be undone!`)) {
-                saveRuns([]);
-                refreshDashboard();
-                alert('All data cleared.');
-            }
-
-        });
-        // ═══════════════════════════════════════════════════════
-        //  HEATMAP
-        // ═══════════════════════════════════════════════════════
-
-        function dateKeyLocal(d) {
-            const y = d.getFullYear();
-            const m = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            return `${y}-${m}-${day}`;
-        }
-
-        function niceDate(key) {
-            const [y, m, d] = key.split('-').map(Number);
-            const dt = new Date(y, m - 1, d);
-            const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-            return `${days[dt.getDay()]}, ${months[dt.getMonth()]} ${dt.getDate()}`;
-        }
-
-        function computeStreaks(activeDays, year) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            let current = 0;
-            let cursor = new Date(today);
-            while (dateKeyLocal(cursor) >= `${year}-01-01`) {
-                if (activeDays.has(dateKeyLocal(cursor))) {
-                    current++;
-                    cursor.setDate(cursor.getDate() - 1);
-                } else {
-                    if (current === 0 && dateKeyLocal(cursor) === dateKeyLocal(today)) {
-                        cursor.setDate(cursor.getDate() - 1);
-                        continue;
-                    }
+                if (hasDate && hasDistance && hasPace) {
+                    headerRowIndex = i;
+                    headers = row.map(h => h ? h.toString().trim() : '');
                     break;
                 }
             }
 
-            const sortedDays = [...activeDays]
-                .filter(d => d.startsWith(year + '-'))
-                .sort();
-            let longest = 0;
-            let run = 0;
-            let prev = null;
-            for (const d of sortedDays) {
-                if (prev) {
-                    const diff = (new Date(d) - new Date(prev)) / 86400000;
-                    if (diff === 1) run++;
-                    else run = 1;
-                } else {
-                    run = 1;
-                }
-                longest = Math.max(longest, run);
-                prev = d;
-            }
-            return { current, longest };
-        }
-
-        function renderHeatmap(runs) {
-            const content = document.getElementById('heatmapContent');
-            const yearLabel = document.getElementById('heatmapYearLabel');
-            const summaryEl = document.getElementById('summary-heatmap');
-
-            if (!runs || !runs.length) {
-                content.innerHTML = `<div class="empty-state"><div class="big">🔥</div>No runs to show</div>`;
-                if (yearLabel) yearLabel.textContent = '';
-                if (summaryEl) summaryEl.innerHTML = '';
+            if (headerRowIndex === -1) {
+                alert('Could not find header row with Date, Distance, and Pace columns.');
                 return;
             }
 
-            // Aggregate km per day
-            const dayMap = {};
-            runs.forEach(r => {
-                if (!dayMap[r.date]) dayMap[r.date] = { km: 0, count: 0 };
-                dayMap[r.date].km += r.dist || 0;
-                dayMap[r.date].count += 1;
-            });
+            const dateIdx = headers.findIndex(h => h.toLowerCase().includes('date'));
+            const distIdx = headers.findIndex(h => h.toLowerCase().includes('distance'));
+            const paceIdx = headers.findIndex(h => h.toLowerCase().includes('pace') && !h.toLowerCase()
+                .includes('5k'));
+            const energyIdx = headers.findIndex(h => h.toLowerCase().includes('energy') || h.toLowerCase()
+                .includes('cal'));
+            const pace5kIdx = headers.findIndex(h => h.toLowerCase().includes('5k') && h.toLowerCase()
+                .includes('pace'));
 
-            // Determine year (latest year in the data)
-            const years = {};
-            runs.forEach(r => { const y = r.date.slice(0, 4); years[y] = (years[y] || 0) + 1; });
-            const yearKeys = Object.keys(years).sort();
-            const year = yearKeys[yearKeys.length - 1];
+            const runs = [];
+            for (let i = headerRowIndex + 1; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length === 0) continue;
 
-            if (yearLabel) yearLabel.textContent = ` · ${year}`;
+                let date = row[dateIdx] || '';
+                const dist = parseFloat(row[distIdx]) || 0;
+                const pace = parseFloat(row[paceIdx]) || 0;
+                const energy = parseFloat(row[energyIdx]) || 0;
+                let pace5k = parseFloat(row[pace5kIdx]);
+                if (isNaN(pace5k)) pace5k = pace * 5;
 
-            // Build week grid
-            const start = new Date(parseInt(year), 0, 1);
-            start.setDate(start.getDate() - start.getDay());
-            const end = new Date(parseInt(year), 11, 31);
-
-            const weeks = [];
-            let week = [];
-            let cursor = new Date(start);
-
-            while (cursor <= end) {
-                const key = dateKeyLocal(cursor);
-                const inYear = cursor.getFullYear().toString() === year;
-                const dayData = dayMap[key];
-                const km = dayData ? dayData.km : 0;
-
-                let level = 0;
-                if (km > 0 && km < 3) level = 1;
-                else if (km >= 3 && km < 5) level = 2;
-                else if (km >= 5 && km < 8) level = 3;
-                else if (km >= 8) level = 4;
-
-                week.push({ key, km, count: dayData ? dayData.count : 0, level, inYear });
-                if (cursor.getDay() === 6) { weeks.push(week); week = []; }
-                cursor.setDate(cursor.getDate() + 1);
-            }
-            if (week.length) weeks.push(week);
-
-            // Month label positions
-            const monthStarts = {};
-            weeks.forEach((w, wi) => {
-                w.forEach(day => {
-                    if (day.inYear) {
-                        const m = parseInt(day.key.slice(5, 7), 10);
-                        if (!(m in monthStarts)) monthStarts[m] = wi;
+                if (typeof date === 'number' && isExcelDate(date)) {
+                    date = excelSerialToDate(date);
+                } else {
+                    let dateStr = date.toString().trim();
+                    if (dateStr.includes(' ')) {
+                        dateStr = dateStr.split(' ')[0];
                     }
-                });
-            });
-
-            const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
-            let monthsHtml = `<div class="heatmap-months" style="grid-template-columns: repeat(${weeks.length}, 12px);">`;
-            for (let m = 1; m <= 12; m++) {
-                if (m in monthStarts) {
-                    monthsHtml += `<span style="grid-column-start: ${monthStarts[m] + 1};">${monthNames[m - 1]}</span>`;
+                    date = dateStr;
                 }
-            }
-            monthsHtml += `</div>`;
 
-            let cellsHtml = `<div class="heatmap-grid">`;
-            weeks.forEach(w => {
-                const padded = [null, null, null, null, null, null, null];
-                w.forEach(day => {
-                    const [y, mo, d] = day.key.split('-').map(Number);
-                    const dow = new Date(y, mo - 1, d).getDay();
-                    padded[dow] = day;
-                });
-                padded.forEach(day => {
-                    if (!day) {
-                        cellsHtml += `<div class="heatmap-cell" style="visibility:hidden;"></div>`;
-                    } else {
-                        const cls = `heatmap-cell l${day.level}` + (day.inYear ? '' : ' out-of-year');
-                        cellsHtml += `<div class="${cls}" data-key="${day.key}" data-km="${day.km.toFixed(2)}" data-count="${day.count}"></div>`;
-                    }
-                });
-            });
-            cellsHtml += `</div>`;
+                if (!date || dist <= 0 || pace <= 0) continue;
 
-            content.innerHTML = `
-                <div class="heatmap-scroll">
-                    <div class="heatmap-inner">
-                        ${monthsHtml}
-                        <div class="heatmap-body">
-                            <div class="heatmap-days">
-                                <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
-                            </div>
-                            ${cellsHtml}
-                        </div>
-                    </div>
-                </div>
-                <div class="heatmap-legend">
-                    <span>Less</span>
-                    <div class="swatch" style="background:#1a212e"></div>
-                    <div class="swatch" style="background:#0e4429"></div>
-                    <div class="swatch" style="background:#006d32"></div>
-                    <div class="swatch" style="background:#26a641"></div>
-                    <div class="swatch" style="background:#39d353"></div>
-                    <span>More</span>
-                </div>
-            `;
-
-            // Tooltips
-            let tooltip = document.getElementById('heatmapTooltip');
-            if (!tooltip) {
-                tooltip = document.createElement('div');
-                tooltip.id = 'heatmapTooltip';
-                tooltip.className = 'heatmap-tooltip';
-                document.body.appendChild(tooltip);
+                runs.push({ date, dist, pace, energy, pace5k });
             }
 
-            content.querySelectorAll('.heatmap-cell[data-key]').forEach(cell => {
-                cell.addEventListener('mouseenter', () => {
-                    const key = cell.dataset.key;
-                    const km = parseFloat(cell.dataset.km);
-                    const count = parseInt(cell.dataset.count, 10);
-                    let body;
-                    if (km === 0) body = `<div class="empty">No run</div>`;
-                    else {
-                        body = `<div class="km">${km.toFixed(2)} km</div>`;
-                        if (count > 1) body += `<div style="color:#7a8aa3;font-size:0.7rem;margin-top:2px;">${count} runs</div>`;
-                    }
-                    tooltip.innerHTML = `<div class="date">${niceDate(key)}</div>${body}`;
-                    tooltip.classList.add('visible');
-                });
-                cell.addEventListener('mousemove', e => {
-                    tooltip.style.left = (e.clientX + 14) + 'px';
-                    tooltip.style.top = (e.clientY - 10) + 'px';
-                });
-                cell.addEventListener('mouseleave', () => {
-                    tooltip.classList.remove('visible');
-                });
-                cell.addEventListener('touchstart', () => {
-                    const key = cell.dataset.key;
-                    const km = parseFloat(cell.dataset.km);
-                    let body = km === 0 ? `<div class="empty">No run</div>` : `<div class="km">${km.toFixed(2)} km</div>`;
-                    tooltip.innerHTML = `<div class="date">${niceDate(key)}</div>${body}`;
-                    tooltip.style.left = '50%';
-                    tooltip.style.top = '80px';
-                    tooltip.style.transform = 'translateX(-50%)';
-                    tooltip.classList.add('visible');
-                    setTimeout(() => tooltip.classList.remove('visible'), 2200);
-                });
-            });
-
-            // Summary cards
-            const activeDays = new Set(Object.keys(dayMap));
-            const yearActiveDays = [...activeDays].filter(d => d.startsWith(year + '-'));
-            const { current, longest } = computeStreaks(activeDays, year);
-
-            let bestKm = 0;
-            yearActiveDays.forEach(k => {
-                if (dayMap[k].km > bestKm) bestKm = dayMap[k].km;
-            });
-
-            let totalKm = 0;
-            yearActiveDays.forEach(k => { totalKm += dayMap[k].km; });
-
-            if (summaryEl) {
-                summaryEl.innerHTML = `
-                    <div class="summary-card"><div class="num blue">${yearActiveDays.length}</div><div class="lbl">Active days</div></div>
-                    <div class="summary-card"><div class="num green">${current}</div><div class="lbl">Current streak</div></div>
-                    <div class="summary-card"><div class="num orange">${longest}</div><div class="lbl">Longest streak</div></div>
-                    <div class="summary-card"><div class="num pink">${bestKm ? bestKm.toFixed(1) : 0}</div><div class="lbl">Best day (km)</div></div>
-                    <div class="summary-card"><div class="num purple">${totalKm.toFixed(0)}</div><div class="lbl">Total km (${year})</div></div>
-                `;
+            if (!runs.length) {
+                alert('No valid runs found in the Excel file.');
+                return;
             }
+
+            if (confirm(`Import ${runs.length} runs from Excel? This will replace all current data.`)) {
+                await saveRuns(runs);
+                await refreshDashboard();
+                alert(`✅ Imported ${runs.length} runs successfully!`);
+            }
+
+        } catch (err) {
+            alert('Error reading Excel file: ' + err.message);
         }
+    };
+    reader.readAsArrayBuffer(file);
+    this.value = '';
+});
 
-        // ── Init ──
-        document.addEventListener('DOMContentLoaded', async function() {
+// ── Clear All ──
+document.getElementById('btnClearAll').addEventListener('click', async function() {
+    const runs = await loadRuns();
+    if (!runs.length) {
+        alert('No data to clear.');
+        return;
+    }
+    if (confirm(`⚠️ Delete ALL ${runs.length} runs? This cannot be undone!`)) {
+        await saveRuns([]);
+        await refreshDashboard();
+        alert('All data cleared.');
+    }
+});
+
+// ═══════════════════════════════════════════════════════
+//  HEATMAP
+// ═══════════════════════════════════════════════════════
+
+function dateKeyLocal(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function niceDate(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${days[dt.getDay()]}, ${months[dt.getMonth()]} ${dt.getDate()}`;
+}
+
+function computeStreaks(activeDays, year) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    let current = 0;
+    let cursor = new Date(today);
+    while (dateKeyLocal(cursor) >= `${year}-01-01`) {
+        if (activeDays.has(dateKeyLocal(cursor))) {
+            current++;
+            cursor.setDate(cursor.getDate() - 1);
+        } else {
+            if (current === 0 && dateKeyLocal(cursor) === dateKeyLocal(today)) {
+                cursor.setDate(cursor.getDate() - 1);
+                continue;
+            }
+            break;
+        }
+    }
+
+    const sortedDays = [...activeDays]
+        .filter(d => d.startsWith(year + '-'))
+        .sort();
+    let longest = 0;
+    let run = 0;
+    let prev = null;
+    for (const d of sortedDays) {
+        if (prev) {
+            const diff = (new Date(d) - new Date(prev)) / 86400000;
+            if (diff === 1) run++;
+            else run = 1;
+        } else {
+            run = 1;
+        }
+        longest = Math.max(longest, run);
+        prev = d;
+    }
+    return { current, longest };
+}
+
+function renderHeatmap(runs) {
+    const content = document.getElementById('heatmapContent');
+    const yearLabel = document.getElementById('heatmapYearLabel');
+    const summaryEl = document.getElementById('summary-heatmap');
+
+    if (!runs || !runs.length) {
+        content.innerHTML = `<div class="empty-state"><div class="big">🔥</div>No runs to show</div>`;
+        if (yearLabel) yearLabel.textContent = '';
+        if (summaryEl) summaryEl.innerHTML = '';
+        return;
+    }
+
+    const dayMap = {};
+    runs.forEach(r => {
+        if (!dayMap[r.date]) dayMap[r.date] = { km: 0, count: 0 };
+        dayMap[r.date].km += r.dist || 0;
+        dayMap[r.date].count += 1;
+    });
+
+    const years = {};
+    runs.forEach(r => { const y = r.date.slice(0, 4); years[y] = (years[y] || 0) + 1; });
+    const yearKeys = Object.keys(years).sort();
+    const year = yearKeys[yearKeys.length - 1];
+
+    if (yearLabel) yearLabel.textContent = ` · ${year}`;
+
+    const start = new Date(parseInt(year), 0, 1);
+    start.setDate(start.getDate() - start.getDay());
+    const end = new Date(parseInt(year), 11, 31);
+
+    const weeks = [];
+    let week = [];
+    let cursor = new Date(start);
+
+    while (cursor <= end) {
+        const key = dateKeyLocal(cursor);
+        const inYear = cursor.getFullYear().toString() === year;
+        const dayData = dayMap[key];
+        const km = dayData ? dayData.km : 0;
+
+        let level = 0;
+        if (km > 0 && km < 3) level = 1;
+        else if (km >= 3 && km < 5) level = 2;
+        else if (km >= 5 && km < 8) level = 3;
+        else if (km >= 8) level = 4;
+
+        week.push({ key, km, count: dayData ? dayData.count : 0, level, inYear });
+        if (cursor.getDay() === 6) { weeks.push(week); week = []; }
+        cursor.setDate(cursor.getDate() + 1);
+    }
+    if (week.length) weeks.push(week);
+
+    const monthStarts = {};
+    weeks.forEach((w, wi) => {
+        w.forEach(day => {
+            if (day.inYear) {
+                const m = parseInt(day.key.slice(5, 7), 10);
+                if (!(m in monthStarts)) monthStarts[m] = wi;
+            }
+        });
+    });
+
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    let monthsHtml = `<div class="heatmap-months" style="grid-template-columns: repeat(${weeks.length}, 12px);">`;
+    for (let m = 1; m <= 12; m++) {
+        if (m in monthStarts) {
+            monthsHtml += `<span style="grid-column-start: ${monthStarts[m] + 1};">${monthNames[m - 1]}</span>`;
+        }
+    }
+    monthsHtml += `</div>`;
+
+    let cellsHtml = `<div class="heatmap-grid">`;
+    weeks.forEach(w => {
+        const padded = [null, null, null, null, null, null, null];
+        w.forEach(day => {
+            const [y, mo, d] = day.key.split('-').map(Number);
+            const dow = new Date(y, mo - 1, d).getDay();
+            padded[dow] = day;
+        });
+        padded.forEach(day => {
+            if (!day) {
+                cellsHtml += `<div class="heatmap-cell" style="visibility:hidden;"></div>`;
+            } else {
+                const cls = `heatmap-cell l${day.level}` + (day.inYear ? '' : ' out-of-year');
+                cellsHtml += `<div class="${cls}" data-key="${day.key}" data-km="${day.km.toFixed(2)}" data-count="${day.count}"></div>`;
+            }
+        });
+    });
+    cellsHtml += `</div>`;
+
+    content.innerHTML = `
+        <div class="heatmap-scroll">
+            <div class="heatmap-inner">
+                ${monthsHtml}
+                <div class="heatmap-body">
+                    <div class="heatmap-days">
+                        <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                    </div>
+                    ${cellsHtml}
+                </div>
+            </div>
+        </div>
+        <div class="heatmap-legend">
+            <span>Less</span>
+            <div class="swatch" style="background:#1a212e"></div>
+            <div class="swatch" style="background:#0e4429"></div>
+            <div class="swatch" style="background:#006d32"></div>
+            <div class="swatch" style="background:#26a641"></div>
+            <div class="swatch" style="background:#39d353"></div>
+            <span>More</span>
+        </div>
+    `;
+
+    let tooltip = document.getElementById('heatmapTooltip');
+    if (!tooltip) {
+        tooltip = document.createElement('div');
+        tooltip.id = 'heatmapTooltip';
+        tooltip.className = 'heatmap-tooltip';
+        document.body.appendChild(tooltip);
+    }
+
+    content.querySelectorAll('.heatmap-cell[data-key]').forEach(cell => {
+        cell.addEventListener('mouseenter', () => {
+            const key = cell.dataset.key;
+            const km = parseFloat(cell.dataset.km);
+            const count = parseInt(cell.dataset.count, 10);
+            let body;
+            if (km === 0) body = `<div class="empty">No run</div>`;
+            else {
+                body = `<div class="km">${km.toFixed(2)} km</div>`;
+                if (count > 1) body += `<div style="color:#7a8aa3;font-size:0.7rem;margin-top:2px;">${count} runs</div>`;
+            }
+            tooltip.innerHTML = `<div class="date">${niceDate(key)}</div>${body}`;
+            tooltip.classList.add('visible');
+        });
+        cell.addEventListener('mousemove', e => {
+            tooltip.style.left = (e.clientX + 14) + 'px';
+            tooltip.style.top = (e.clientY - 10) + 'px';
+        });
+        cell.addEventListener('mouseleave', () => {
+            tooltip.classList.remove('visible');
+        });
+        cell.addEventListener('touchstart', () => {
+            const key = cell.dataset.key;
+            const km = parseFloat(cell.dataset.km);
+            let body = km === 0 ? `<div class="empty">No run</div>` : `<div class="km">${km.toFixed(2)} km</div>`;
+            tooltip.innerHTML = `<div class="date">${niceDate(key)}</div>${body}`;
+            tooltip.style.left = '50%';
+            tooltip.style.top = '80px';
+            tooltip.style.transform = 'translateX(-50%)';
+            tooltip.classList.add('visible');
+            setTimeout(() => tooltip.classList.remove('visible'), 2200);
+        });
+    });
+
+    const activeDays = new Set(Object.keys(dayMap));
+    const yearActiveDays = [...activeDays].filter(d => d.startsWith(year + '-'));
+    const { current, longest } = computeStreaks(activeDays, year);
+
+    let bestKm = 0;
+    yearActiveDays.forEach(k => {
+        if (dayMap[k].km > bestKm) bestKm = dayMap[k].km;
+    });
+
+    let totalKm = 0;
+    yearActiveDays.forEach(k => { totalKm += dayMap[k].km; });
+
+    if (summaryEl) {
+        summaryEl.innerHTML = `
+            <div class="summary-card"><div class="num blue">${yearActiveDays.length}</div><div class="lbl">Active days</div></div>
+            <div class="summary-card"><div class="num green">${current}</div><div class="lbl">Current streak</div></div>
+            <div class="summary-card"><div class="num orange">${longest}</div><div class="lbl">Longest streak</div></div>
+            <div class="summary-card"><div class="num pink">${bestKm ? bestKm.toFixed(1) : 0}</div><div class="lbl">Best day (km)</div></div>
+            <div class="summary-card"><div class="num purple">${totalKm.toFixed(0)}</div><div class="lbl">Total km (${year})</div></div>
+        `;
+    }
+}
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', async function() {
     const today = new Date().toISOString().slice(0, 10);
     document.getElementById('inputDate').value = today;
 
@@ -2038,44 +2005,43 @@ async function saveRuns(runs) {
     await refreshDashboard();
     initTabs();
 
-            let resizeTimer;
-            window.addEventListener('resize', function() {
-                clearTimeout(resizeTimer);
-                resizeTimer = setTimeout(async () => {
-    const activeTab = document.querySelector('.tab-btn.active');
-    if (activeTab) {
-        const tab = activeTab.dataset.tab;
-        const runs = await loadRuns();
-        const groups = groupRuns(runs);
-                        if (tab === 'overview') {
-                            renderCalPerKmChart(groups.overview);
-                        } else if (tab === 'trends') {
-                            renderTrendsCharts(groups.trends);
-                        } else if (tab === 'heatmap') {
-                            renderHeatmap(groups.trends);
-                        } else {
-                            const chartMap = {
-                                jan: 'chart-jan',
-                                febmay: 'chart-febmay',
-                                jun: 'chart-jun',
-                                jul: 'chart-jul',
-                                aug: 'chart-aug',
-                                sep: 'chart-sep'
-                            };
-                            const id = chartMap[tab];
-                            if (id) renderMonthlyChart(id, groups[tab] || []);
-                        }
-                    }
-                }, 200);
-            });
-
-            // ── Register Service Worker ──
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(() => console.log('Service Worker registered'))
-                    .catch(err => console.log('Service Worker registration failed:', err));
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(async () => {
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (activeTab) {
+                const tab = activeTab.dataset.tab;
+                const runs = await loadRuns();
+                const groups = groupRuns(runs);
+                if (tab === 'overview') {
+                    renderCalPerKmChart(groups.overview);
+                } else if (tab === 'trends') {
+                    renderTrendsCharts(groups.trends);
+                } else if (tab === 'heatmap') {
+                    renderHeatmap(groups.trends);
+                } else {
+                    const chartMap = {
+                        jan: 'chart-jan',
+                        febmay: 'chart-febmay',
+                        jun: 'chart-jun',
+                        jul: 'chart-jul',
+                        aug: 'chart-aug',
+                        sep: 'chart-sep'
+                    };
+                    const id = chartMap[tab];
+                    if (id) renderMonthlyChart(id, groups[tab] || []);
+                }
             }
-        });
+        }, 200);
+    });
+
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('service-worker.js')
+            .then(() => console.log('Service Worker registered'))
+            .catch(err => console.log('Service Worker registration failed:', err));
+    }
+});
     </script>
 </body>
 </html>
